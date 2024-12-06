@@ -1,2 +1,3 @@
 # Automated-Health-Clinic-Management
-Lancs PMP 
+
+A program for degitising a hypothetical health clinic operation
