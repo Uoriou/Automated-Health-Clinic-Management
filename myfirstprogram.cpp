@@ -6,17 +6,24 @@
 
 using namespace std;
 
-// make it all as class and create 
-/*
-Save patients data to a JSON file
-*/
-class Test{
 
+class Test{
+    public:
+    int num = 10;//Just testing 
 };
-struct Patient {
+
+class Patient{
+    public:
     string name;
+    string medicalHistory;
     string address;
-    string illness;
+    bool hasAppointment;
+    
+    //Patient(string name, string address){
+        //this->name = name;
+        //this->address = address;
+    
+    //}
 
     crow::json::wvalue to_json() const {
         crow::json::wvalue j;
@@ -25,7 +32,24 @@ struct Patient {
 
         return j;
     }
+
 };
+
+//struct Patient {
+
+    //string name;
+    //string address;
+    //string illness;
+    //string medicalHistory;
+
+    //crow::json::wvalue to_json() const {
+        //crow::json::wvalue j;
+        //j["name"] = name;
+        //j["address"] = address;
+
+        //return j;
+    //}
+//};
 
 struct Appointment {
     int pid;
@@ -75,10 +99,17 @@ int main() {
         string name = req.url_params.get("name");
         string address = req.url_params.get("address");
 
-        Patient patientObject{name, address};
+        Patient patientObject;
+        patientObject.name = name;
+        patientObject.address = address;
+
+        //Patient patientObject{name, address};
+        //Save patients data to a JSON file 
+
         crow::json::wvalue jsonRes;
 
         patients[patientCounter] = patientObject;
+
         jsonRes[std::to_string(patientCounter)] = patientObject.to_json();
         patientCounter++;
 
