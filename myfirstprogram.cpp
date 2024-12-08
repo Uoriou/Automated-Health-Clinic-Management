@@ -7,7 +7,9 @@
 using namespace std;
 
 // make it all as class and create 
-
+/*
+Save patients data to a JSON file
+*/
 class Test{
 
 };
