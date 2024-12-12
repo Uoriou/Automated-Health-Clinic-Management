@@ -57,20 +57,6 @@ class AppointmentClass{
    
 };
 
-//struct Doctor {
-
-    
-    //string name;
-    //string specialization;
-
-    //crow::json::wvalue to_json() const {
-        //crow::json::wvalue j;
-        //j["name"] = name;
-        //j["specialization"] = specialization;
-        //return j;
-    //}
-//};
-
 int main() {
     crow::SimpleApp app;
     map<int, Patient> patients;
@@ -162,22 +148,32 @@ int main() {
         } 
         //Use try except
         //Booking an appointment 
-        for(int i = 0; i < book.availableTimeSlots.size();i++){
-
-            patientBookAppo.appointment = book.availableTimeSlots[0];//vector needs to be re-initialised
-            doctorObj.slots[tempContainer] = patientBookAppo.appointment;
-            if(patientBookAppo.hasAppointment[pid] == false){
-               patientBookAppo.hasAppointment[pid] = true; 
-               //cout<<patientBookAppo.appointment;
+        try{
+            for(int i = 0; i < book.availableTimeSlots.size();i++){
+            //making some changes here 
+                if(time == book.availableTimeSlots[i]){
+                    patientBookAppo.appointment = book.availableTimeSlots[i];
+                    doctorObj.slots[tempContainer] = patientBookAppo.appointment;
+                    if(patientBookAppo.hasAppointment[pid] == false){
+                    patientBookAppo.hasAppointment[pid] = true; 
+                    //cout<<patientBookAppo.appointment;
+                    }
+                }else{
+                    throw("?");
+                }
             }
         }
+        catch(...){
+            response["message"] = "Sorry, please try again";
+        }
+        
 
         //Use try except here as well 
         if(patientBookAppo.hasAppointment[pid]){
             response["message"] = "Appointment booked successfully";
             return crow::response(response);
         }else{
-           response["message"] = "Not successful";
+           response["message"] = "The selected time is unavailable";
            return crow::response(response); 
         }
         
