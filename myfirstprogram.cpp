@@ -31,6 +31,7 @@ class DoctorClass{
     bool isAvailable;
     //docId is mapped to the timeslots 
     map<int,string>slots;
+    map<int,DoctorClass>doctorsMap; 
 
     crow::json::wvalue to_json() const {
         crow::json::wvalue j;
@@ -45,7 +46,7 @@ class AppointmentClass{
     //In the doctorclass, the following timeslot is mapped to docID 
     public:
     map<int,int>patientToDocMap;
-    vector<string>availableTimeSlots = {"9:00","9:30","10,00,","10:30"};
+    vector<string>availableTimeSlots = {"9:00","9:30","10,00,","10:30,","11:00","11:30","12:30"};
     //crow::json::wvalue to_json() const {
         //crow::json::wvalue j;
         //j["pid"] = pid;
@@ -84,54 +85,11 @@ class PatientPrescription{
 
 };
 
-int main() {
-    crow::SimpleApp app;
-    map<int, Patient> patients;
-    Patient patientBookAppo;//booking               
-    //map<int, vector<Appointment>> appointments; 
-    //map<int, Doctor> doctors; 
-    map<int,DoctorClass>doctorsMap;  
-    PatientPrescription test;
-    int io = 0;
-    string name = "bejfnbje";
-    test.handlePrescription(io,name,test.prescription);
-    cout<<test.getMedicalHistory(test.prescription);
 
-    //Declare a JSON file holder here      
-    int patientCounter = 0;
+void initialiseDoctors(crow::SimpleApp app){
+
     int doctorCounter = 0; 
-
-
-
-    //Can this be in a class ?
-    // to register a patient 
-    // address:port/register?name=whatever whatever&street= 12312313 anywhere
-    //  patientCounter automatically increases by 1 when new patients are created
-    //The patient can not have an appointment at the time of the registration
-    CROW_ROUTE(app, "/register").methods("GET"_method)([&](const crow::request& req) {
-        if (!req.url_params.get("name") || !req.url_params.get("address")) {
-            return crow::response(404, "Missing 'name' or 'address' query parameter.");
-        }
-
-        string name = req.url_params.get("name");
-        string address = req.url_params.get("address");
-
-        Patient patientObject;
-        patientObject.name = name;
-        patientObject.address = address;
-        //Save patients data to a JSON file for now  
-
-        crow::json::wvalue jsonRes;
-
-        patients[patientCounter] = patientObject;
-        patientObject.hasAppointment[patientCounter] = false;//No appointment 
-        jsonRes[std::to_string(patientCounter)] = patientObject.to_json(); 
-        patientCounter++;
-
-        return crow::response(jsonRes);
-    });
-
-    // to register a doctor 
+   // to register a doctor 
     // address:port/registerdoctor?name=ayya&specialization=smth same stuff with doctorcounter
     CROW_ROUTE(app, "/registerdoctor").methods("GET"_method)([&](const crow::request& req) {
         if (!req.url_params.get("name") || !req.url_params.get("specialization")) {
@@ -147,9 +105,57 @@ int main() {
         doctor.isAvailable = true;//Initially they are free
         crow::json::wvalue jsonRes;
         // Add doctor to the map and save this to a JSON file
-        doctorsMap[doctor.docId] = doctor; 
+        doctor.doctorsMap[doctor.docId] = doctor; 
         jsonRes[std::to_string(doctorCounter)] = doctor.to_json();
         //doctorCounter++; // Increment doctor ID
+
+        //return crow::response(jsonRes);
+    }); 
+}
+
+int main() {
+    
+    crow::SimpleApp app;
+    map<int, Patient> patients;
+    Patient patientBookAppo;//booking               
+    //map<int, vector<Appointment>> appointments;  
+    map<int,DoctorClass>doctorsMap;  
+    PatientPrescription test;
+    //Fix this -- > 
+    int io = 0;
+    string name = "bejfnbje";
+    test.handlePrescription(io,name,test.prescription);
+    cout<<test.getMedicalHistory(test.prescription);
+
+    //Declare a JSON file holder here      
+    
+    int doctorCounter = 0; 
+
+
+    //Can this be in a class ?
+    // to register a patient 
+    // address:port/register?name=whatever whatever&street= 12312313 anywhere
+    //  patientCounter automatically increases by 1 when new patients are created
+    //The patient can not have an appointment at the time of the registration
+    CROW_ROUTE(app, "/register").methods("GET"_method)([&](const crow::request& req) {
+        if (!req.url_params.get("name") || !req.url_params.get("address")) {
+            return crow::response(404, "Missing 'name' or 'address' query parameter.");
+        }
+
+        int patientCounter = 0;
+        string name = req.url_params.get("name");
+        string address = req.url_params.get("address");
+        Patient patientObject;
+        patientObject.name = name;
+        patientObject.address = address;
+        //Save patients data to a JSON file for now  
+
+        crow::json::wvalue jsonRes;
+
+        patients[patientCounter] = patientObject;
+        patientObject.hasAppointment[patientCounter] = false;//No appointment 
+        jsonRes[std::to_string(patientCounter)] = patientObject.to_json(); 
+        patientCounter++;
 
         return crow::response(jsonRes);
     });
@@ -176,7 +182,7 @@ int main() {
         DoctorClass doctorObj;
         crow::json::wvalue response; 
         int tempContainer;//Doctor id holder temporary
-        for(const auto & doctor:doctorsMap){
+        for(const auto & doctor:doctorObj.doctorsMap){
             tempContainer = doctor.first;
             book.patientToDocMap[pid] = tempContainer;
            
@@ -229,8 +235,6 @@ int main() {
         //response["appointments"] = std::move(appointmentList);
         //return crow::response(response);
     //});
-
-
     app.port(3333).run();
     return 0;
 }
