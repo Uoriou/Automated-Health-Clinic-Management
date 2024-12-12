@@ -24,21 +24,6 @@ class Patient{
 
 };
 
-//struct Patient {
-
-    //string name;
-    //string address;
-    //string illness;
-    //string medicalHistory;
-
-    //crow::json::wvalue to_json() const {
-        //crow::json::wvalue j;
-        //j["name"] = name;
-        //j["address"] = address;
-
-        //return j;
-    //}
-//};
 
 class DoctorClass{
     public: 
@@ -72,47 +57,32 @@ class AppointmentClass{
    
 };
 
-//struct Appointment {
+//struct Doctor {
 
-   // int pid;
-   // string date; // Day Month Year
-   //string time; // Hours: Minutes
     
+    //string name;
+    //string specialization;
 
     //crow::json::wvalue to_json() const {
         //crow::json::wvalue j;
-        //j["pid"] = pid;
-        //j["date"] = date;
-        //j["time"] = time;
-         //j["doctor"] = doctor;
+        //j["name"] = name;
+        //j["specialization"] = specialization;
         //return j;
     //}
 //};
 
-struct Doctor {
-
-    
-    string name;
-    string specialization;
-
-    crow::json::wvalue to_json() const {
-        crow::json::wvalue j;
-        j["name"] = name;
-        j["specialization"] = specialization;
-        return j;
-    }
-};
-
 int main() {
     crow::SimpleApp app;
-
-    map<int, Patient> patients;                
+    map<int, Patient> patients;
+    Patient patientBookAppo;//booking               
     //map<int, vector<Appointment>> appointments; 
     //map<int, Doctor> doctors; 
-    map<int,DoctorClass>doctorsMap;        
+    map<int,DoctorClass>doctorsMap;  
+    //Declare a JSON file holder here      
     int patientCounter = 0;
     int doctorCounter = 0;  
 
+    //Can this be in a class ?
     // to register a patient 
     // address:port/register?name=whatever whatever&street= 12312313 anywhere
     //  patientCounter automatically increases by 1 when new patients are created
@@ -128,8 +98,6 @@ int main() {
         Patient patientObject;
         patientObject.name = name;
         patientObject.address = address;
-
-        //Patient patientObject{name, address};
         //Save patients data to a JSON file for now  
 
         crow::json::wvalue jsonRes;
@@ -165,6 +133,7 @@ int main() {
         return crow::response(jsonRes);
     });
 
+    //Should this be a method inside Appointment class ? and should be called inside crow ? 
     // to book an appointment 
     // address:port/bookappoinment?pid = patient id(int)& date = 12.12.2024(format of the not defined yet is just a string)&time=hour:minute 
     CROW_ROUTE(app, "/bookappointment").methods("GET"_method)([&](const crow::request& req) {
@@ -184,15 +153,14 @@ int main() {
         //then associate pid, docId with the timeslot, removing the already-taken timeslot from  the vector  
         AppointmentClass book;
         DoctorClass doctorObj;
-        Patient patientBookAppo;
+        crow::json::wvalue response; 
         int tempContainer;//Doctor id holder
         for(const auto & doctor:doctorsMap){
             tempContainer = doctor.first;
             book.patientToDocMap[pid] = tempContainer;
            
         } 
-        //cout<<"Doc id";
-        //cout<<book.patientToDocMap[pid];
+        //Use try except
         //Booking an appointment 
         for(int i = 0; i < book.availableTimeSlots.size();i++){
 
@@ -200,20 +168,19 @@ int main() {
             doctorObj.slots[tempContainer] = patientBookAppo.appointment;
             if(patientBookAppo.hasAppointment[pid] == false){
                patientBookAppo.hasAppointment[pid] = true; 
-               cout<<"The patient has an appointment \b";
-               cout<<patientBookAppo.appointment;
+               //cout<<patientBookAppo.appointment;
             }
         }
+
+        //Use try except here as well 
+        if(patientBookAppo.hasAppointment[pid]){
+            response["message"] = "Appointment booked successfully";
+            return crow::response(response);
+        }else{
+           response["message"] = "Not successful";
+           return crow::response(response); 
+        }
         
-
-        //Appointment appointment{pid, date, time};
-        //appointments[pid].push_back(appointment);
-
-        crow::json::wvalue response;
-        //response["message"] = "Appointment booked successfully";
-        //response["appointment"] = appointment.to_json();
-        response["message"] = "Appointment booked successfully";
-        return crow::response(response);
     });
 
     // address:port/getappointment/pid will get all the appointments that patient has
