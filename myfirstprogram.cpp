@@ -57,6 +57,33 @@ class AppointmentClass{
    
 };
 
+
+class PatientPrescription{
+
+    public:
+    Patient patientObj;
+    vector<Patient> patientRecords;
+    map<int, string>prescription; //Pid and the names of the medicines
+
+    void handlePrescription(int pid, string treatment,map<int, string>prescription){
+
+        prescription[pid]  = treatment;
+    }
+
+    int getMedicalHistory(map<int, string>prescription){ //map<int, string>
+        int id = 0;
+        string nameOfTheTreatment = "";
+        for(map<int, string>::iterator it = prescription.begin(); it != prescription.end(); ++it){
+            id = it->first;
+            nameOfTheTreatment = it->second;
+            cout << it->first << ": " << it->second << "\n";
+        }
+
+        return 0;
+    }
+
+};
+
 int main() {
     crow::SimpleApp app;
     map<int, Patient> patients;
@@ -64,9 +91,17 @@ int main() {
     //map<int, vector<Appointment>> appointments; 
     //map<int, Doctor> doctors; 
     map<int,DoctorClass>doctorsMap;  
+    PatientPrescription test;
+    int io = 0;
+    string name = "bejfnbje";
+    test.handlePrescription(io,name,test.prescription);
+    cout<<test.getMedicalHistory(test.prescription);
+
     //Declare a JSON file holder here      
     int patientCounter = 0;
-    int doctorCounter = 0;  
+    int doctorCounter = 0; 
+
+
 
     //Can this be in a class ?
     // to register a patient 
@@ -140,23 +175,24 @@ int main() {
         AppointmentClass book;
         DoctorClass doctorObj;
         crow::json::wvalue response; 
-        int tempContainer;//Doctor id holder
+        int tempContainer;//Doctor id holder temporary
         for(const auto & doctor:doctorsMap){
             tempContainer = doctor.first;
             book.patientToDocMap[pid] = tempContainer;
            
         } 
-        //Use try except
         //Booking an appointment 
         try{
             for(int i = 0; i < book.availableTimeSlots.size();i++){
-            //making some changes here 
+            
                 if(time == book.availableTimeSlots[i]){
                     patientBookAppo.appointment = book.availableTimeSlots[i];
                     doctorObj.slots[tempContainer] = patientBookAppo.appointment;
                     if(patientBookAppo.hasAppointment[pid] == false){
-                    patientBookAppo.hasAppointment[pid] = true; 
-                    //cout<<patientBookAppo.appointment;
+                        patientBookAppo.hasAppointment[pid] = true; 
+                        //When a patient has an appointment already
+                    }else if(patientBookAppo.hasAppointment[pid] == true){
+                       response["message"] = "You have already booked an appointment"; 
                     }
                 }else{
                     throw("?");
@@ -167,8 +203,6 @@ int main() {
             response["message"] = "Sorry, please try again";
         }
         
-
-        //Use try except here as well 
         if(patientBookAppo.hasAppointment[pid]){
             response["message"] = "Appointment booked successfully";
             return crow::response(response);
