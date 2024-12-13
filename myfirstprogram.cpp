@@ -51,15 +51,6 @@ class AppointmentClass{
     public:
     map<int,int>patientToDocMap;
     vector<string>availableTimeSlots = {"9:00","9:30","10,00,","10:30,","11:00","11:30","12:30"};
-    //crow::json::wvalue to_json() const {
-        //crow::json::wvalue j;
-        //j["pid"] = pid;
-        //j["date"] = date;
-        //j["time"] = time;
-        // j["doctor"] = doctor;
-        //return j;
-    //}
-   
 };
 
 
@@ -133,25 +124,9 @@ int main() {
     cout<<test.getMedicalHistory(test.prescription);
 
     //Declare a JSON file here 
-    //json jsonData;
    
     //jsonData["test"] = 5;
     std::string fileName = "data.json";
-    //std::ofstream file(fileName);
-    // Write JSON data to a file
-    std::ofstream file("data.json", std::ios::app); // Open in append mod
-   ;
-    json jsonArray = json::array({{"happy", true},{"pi", 3.141}});
-
-    if (file.is_open()) {
-        
-        file << jsonArray.dump(4); // Pretty print with 4 spaces indentation
-        file.close();
-        cout << "Data saved successfully to " << fileName << std::endl;
-    } else {
-        cerr << "Failed to open the file." << std::endl;
-    }
-    
     
 
     //Can this be in a class ?
@@ -178,10 +153,22 @@ int main() {
         patientObject.hasAppointment[patientCounter] = false;//No appointment 
         jsonRes[std::to_string(patientCounter)] = patientObject.to_json(); 
         patientCounter++;
+        //std::ofstream file(fileName);
+        // Write JSON data to a file
+        
 
         return crow::response(jsonRes);
     });
+    std::ofstream file("data.json", std::ios::app); // Open in append mod
+    json jsonArray = json::array({{"happy", true},{"pi", 3.141}});
 
+    if (file.is_open()) {     
+        file << jsonArray.dump(4); // Pretty print with 4 spaces indentation
+        file.close();
+        cout << "Data saved successfully to " << fileName << std::endl;
+    } else {
+        cerr << "Failed to open the file." << std::endl;
+    }
     //Should this be a method inside Appointment class ? and should be called inside crow ? 
     // to book an appointment 
     // address:port/bookappoinment?pid = patient id(int)& date = 12.12.2024(format of the not defined yet is just a string)&time=hour:minute 
