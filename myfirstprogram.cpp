@@ -1,8 +1,12 @@
 #include <iostream>
 #include <string>
-#include <map>
 #include <vector>
+#include <fstream>
+#include <map>
 #include "crow.h"
+#include "nlohmann/json.hpp"
+
+using json = nlohmann::json;
 
 using namespace std;
 
@@ -109,7 +113,7 @@ void initialiseDoctors(crow::SimpleApp app){
         jsonRes[std::to_string(doctorCounter)] = doctor.to_json();
         //doctorCounter++; // Increment doctor ID
 
-        //return crow::response(jsonRes);
+        return crow::response(jsonRes);
     }); 
 }
 
@@ -121,16 +125,34 @@ int main() {
     //map<int, vector<Appointment>> appointments;  
     map<int,DoctorClass>doctorsMap;  
     PatientPrescription test;
-    //Fix this -- > 
+    int doctorCounter = 0; 
+    //Fix this code for the task2 -- > 
     int io = 0;
     string name = "bejfnbje";
     test.handlePrescription(io,name,test.prescription);
     cout<<test.getMedicalHistory(test.prescription);
 
-    //Declare a JSON file holder here      
-    
-    int doctorCounter = 0; 
+    //Declare a JSON file here 
+    //json jsonData;
+   
+    //jsonData["test"] = 5;
+    std::string fileName = "data.json";
+    //std::ofstream file(fileName);
+    // Write JSON data to a file
+    std::ofstream file("data.json", std::ios::app); // Open in append mod
+   ;
+    json jsonArray = json::array({{"happy", true},{"pi", 3.141}});
 
+    if (file.is_open()) {
+        
+        file << jsonArray.dump(4); // Pretty print with 4 spaces indentation
+        file.close();
+        cout << "Data saved successfully to " << fileName << std::endl;
+    } else {
+        cerr << "Failed to open the file." << std::endl;
+    }
+    
+    
 
     //Can this be in a class ?
     // to register a patient 
@@ -197,6 +219,7 @@ int main() {
                     if(patientBookAppo.hasAppointment[pid] == false){
                         patientBookAppo.hasAppointment[pid] = true; 
                         //When a patient has an appointment already
+                        cout<<"YEAHHHHHH BOOKED";
                     }else if(patientBookAppo.hasAppointment[pid] == true){
                        response["message"] = "You have already booked an appointment"; 
                     }
