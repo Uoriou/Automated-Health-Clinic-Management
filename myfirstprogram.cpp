@@ -4,9 +4,7 @@
 #include <fstream>
 #include <map>
 #include "crow.h"
-#include "nlohmann/json.hpp"
 
-using json = nlohmann::json;
 
 using namespace std;
 
@@ -15,9 +13,9 @@ class Patient{
     string name;
     string medicalHistory;
     string address;
-    string appointment = ""; //Does this work for c++ ?
+    string appointment = "";
     map<int,bool>hasAppointment;
-   
+
     crow::json::wvalue to_json() const {
         crow::json::wvalue j;
         j["name"] = name;
@@ -50,9 +48,8 @@ class AppointmentClass{
     //In the doctorclass, the following timeslot is mapped to docID 
     public:
     map<int,int>patientToDocMap;
-    vector<string>availableTimeSlots = {"9:00","9:30","10,00,","10:30,","11:00","11:30","12:30"};
+    vector<string>availableTimeSlots = {"9:00","9:30","10:00","10:30","11:00","11:30","12:30"};
 };
-
 
 class PatientPrescription{
 
@@ -62,8 +59,8 @@ class PatientPrescription{
     map<int, string>prescription; //Pid and the names of the medicines
 
     void handlePrescription(int pid, string treatment,map<int, string>prescription){
-
-        prescription[pid]  = treatment;
+        //treatment should be the name of a medicine 
+        prescription[pid] = treatment;
     }
 
     int getMedicalHistory(map<int, string>prescription){ //map<int, string>
@@ -74,7 +71,7 @@ class PatientPrescription{
             nameOfTheTreatment = it->second;
             cout << it->first << ": " << it->second << "\n";
         }
-
+        cout<<"OOOOOOPOO";
         return 0;
     }
 
@@ -112,7 +109,7 @@ int main() {
     
     crow::SimpleApp app;
     map<int, Patient> patients;
-    Patient patientBookAppo;//booking               
+                   
     //map<int, vector<Appointment>> appointments;  
     map<int,DoctorClass>doctorsMap;  
     PatientPrescription test;
@@ -122,12 +119,6 @@ int main() {
     string name = "bejfnbje";
     test.handlePrescription(io,name,test.prescription);
     cout<<test.getMedicalHistory(test.prescription);
-
-    //Declare a JSON file here 
-   
-    //jsonData["test"] = 5;
-    std::string fileName = "data.json";
-    
 
     //Can this be in a class ?
     // to register a patient 
@@ -153,22 +144,10 @@ int main() {
         patientObject.hasAppointment[patientCounter] = false;//No appointment 
         jsonRes[std::to_string(patientCounter)] = patientObject.to_json(); 
         patientCounter++;
-        //std::ofstream file(fileName);
-        // Write JSON data to a file
-        
 
         return crow::response(jsonRes);
     });
-    std::ofstream file("data.json", std::ios::app); // Open in append mod
-    json jsonArray = json::array({{"happy", true},{"pi", 3.141}});
-
-    if (file.is_open()) {     
-        file << jsonArray.dump(4); // Pretty print with 4 spaces indentation
-        file.close();
-        cout << "Data saved successfully to " << fileName << std::endl;
-    } else {
-        cerr << "Failed to open the file." << std::endl;
-    }
+    
     //Should this be a method inside Appointment class ? and should be called inside crow ? 
     // to book an appointment 
     // address:port/bookappoinment?pid = patient id(int)& date = 12.12.2024(format of the not defined yet is just a string)&time=hour:minute 
@@ -189,6 +168,7 @@ int main() {
         //then associate pid, docId with the timeslot, removing the already-taken timeslot from  the vector  
         AppointmentClass book;
         DoctorClass doctorObj;
+        Patient patientBookAppo;//booking
         crow::json::wvalue response; 
         int tempContainer;//Doctor id holder temporary
         for(const auto & doctor:doctorObj.doctorsMap){
@@ -197,23 +177,20 @@ int main() {
            
         } 
         //Booking an appointment 
-        try{
-            for(int i = 0; i < book.availableTimeSlots.size();i++){
-            
-                if(time == book.availableTimeSlots[i]){
-                    patientBookAppo.appointment = book.availableTimeSlots[i];
-                    doctorObj.slots[tempContainer] = patientBookAppo.appointment;
-                    if(patientBookAppo.hasAppointment[pid] == false){
-                        patientBookAppo.hasAppointment[pid] = true; 
-                        //When a patient has an appointment already
-                        cout<<"YEAHHHHHH BOOKED";
-                    }else if(patientBookAppo.hasAppointment[pid] == true){
-                       response["message"] = "You have already booked an appointment"; 
-                    }
-                }else{
-                    throw("?");
+        try{   
+            if(find(book.availableTimeSlots.begin(), book.availableTimeSlots.end(), time) != book.availableTimeSlots.end()){
+                cout<<"Time slot found: "<<time;
+                patientBookAppo.appointment = time;
+                doctorObj.slots[tempContainer] = patientBookAppo.appointment;
+                if(patientBookAppo.hasAppointment[pid] == false){
+                    patientBookAppo.hasAppointment[pid] = true; 
+                    cout<<"BOOKED";
                 }
             }
+            else{
+                throw("Error finding the slot");
+            }
+            
         }
         catch(...){
             response["message"] = "Sorry, please try again";
