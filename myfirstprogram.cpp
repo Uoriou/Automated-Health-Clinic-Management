@@ -4,9 +4,11 @@
 #include <fstream>
 #include <map>
 #include "crow.h"
+#include <nlohmann/json.hpp>
 
 
 using namespace std;
+nlohmann::json jsonData;
 
 class Patient{
     public:
@@ -54,27 +56,42 @@ class AppointmentClass{
 class PatientPrescription{
 
     public:
-    Patient patientObj;
-    vector<Patient> patientRecords;
-    map<int, string>prescription; //Pid and the names of the medicines
+        Patient patientObj;
+        vector<Patient> patientRecords;
+        map<string, string>prescription;// maps the date they visited and the treatment they got 
+        int offset; 
+        string line;
 
-    void handlePrescription(int pid, string treatment,map<int, string>prescription){
-        //treatment should be the name of a medicine 
-        prescription[pid] = treatment;
-    }
-
-    int getMedicalHistory(map<int, string>prescription){ //map<int, string>
-        int id = 0;
-        string nameOfTheTreatment = "";
-        for(map<int, string>::iterator it = prescription.begin(); it != prescription.end(); ++it){
-            id = it->first;
-            nameOfTheTreatment = it->second;
-            cout << it->first << ": " << it->second << "\n";
+        void handlePrescription(int pid, string treatment){
+             
+            prescription["03/12/24"] = treatment;
+            //prescription["04/12/24"] = "Aspirin";
+            //prescription["05/12/24"] = "Ibuprofen";
+            jsonData[to_string(pid)] = prescription;
+            std::ofstream file("prescription.json");
+            //Saving data to prescription.json
+            if (file.is_open()) {
+                
+                
+                file << jsonData.dump(4);
+                file.close();
+                std::cout << "Data saved" << std::endl;
+            } 
         }
-        cout<<"OOOOOOPOO";
-        return 0;
-    }
 
+        map<string,string> getMedicalRecords(int pid){ 
+
+            std::ifstream file("prescription.json");
+            if (file.is_open()) {
+                file >> jsonData;  // Read data into jsonData
+                file.close();
+            } else {
+                std::cerr << "Error opening prescription.json" << std::endl;
+            }
+
+           map<string, string> container = jsonData[to_string(pid)].get<map<string ,string>>();
+           return container;
+        }
 };
 
 
@@ -107,21 +124,14 @@ void initialiseDoctors(crow::SimpleApp app){
 
 int main() {
     
-    crow::SimpleApp app;
+    crow::SimpleApp app;//Used to initialise CROW server
     map<int, Patient> patients;
-                   
+   
     //map<int, vector<Appointment>> appointments;  
     map<int,DoctorClass>doctorsMap;  
-    PatientPrescription test;
+    
     int doctorCounter = 0; 
-    //Fix this code for the task2 -- > 
-    int io = 0;
-    string name = "bejfnbje";
-    test.handlePrescription(io,name,test.prescription);
-    cout<<test.getMedicalHistory(test.prescription);
-
-    //Can this be in a class ?
-    // to register a patient 
+    // register a patient 
     // address:port/register?name=whatever whatever&street= 12312313 anywhere
     //  patientCounter automatically increases by 1 when new patients are created
     //The patient can not have an appointment at the time of the registration
@@ -148,9 +158,10 @@ int main() {
         return crow::response(jsonRes);
     });
     
-    //Should this be a method inside Appointment class ? and should be called inside crow ? 
+    
     // to book an appointment 
-    // address:port/bookappoinment?pid = patient id(int)& date = 12.12.2024(format of the not defined yet is just a string)&time=hour:minute 
+    // address:port/bookappointment?pid = patient id(int)& date = 12.12.2024(format of the not defined yet is just a string)&time=hour:minute 
+    //http://0.0.0.0:3333/bookappontment?pid=1&date=12.12.2024&time=9:00
     CROW_ROUTE(app, "/bookappointment").methods("GET"_method)([&](const crow::request& req) {
         if (!req.url_params.get("pid") || !req.url_params.get("date") || !req.url_params.get("time")) {
             return crow::response(404, "Missing 'pid', 'date', or 'time' query parameter.");
@@ -159,10 +170,6 @@ int main() {
         int pid = atoi(req.url_params.get("pid"));
         string date = req.url_params.get("date");
         string time = req.url_params.get("time");
-
-        //if (patients.find(pid) == patients.end()) {
-            //return crow::response(404, "Patient not found");
-        //}
 
         //Loop through the doctors map and associate docId and pid, 
         //then associate pid, docId with the timeslot, removing the already-taken timeslot from  the vector  
@@ -206,22 +213,50 @@ int main() {
         
     });
 
-    // address:port/getappointment/pid will get all the appointments that patient has
-    //CROW_ROUTE(app, "/getappointments/<int>")([&](int pid) {
-       // if (patients.find(pid) == patients.end()) {
-            //return crow::response(404, "Patient ID is incorrect or there is no such patient");
-        //}
+    /*
+    ==========Task 2========== 
+    Providing prescription to patients
+    */
 
-        //crow::json::wvalue response;
-        //vector<crow::json::wvalue> appointmentList;
+    CROW_ROUTE(app, "/prescribe").methods("GET"_method)([&](const crow::request& req) {
+        
+        int id =  atoi(req.url_params.get("pid"));
+        string treatment = req.url_params.get("treatment");
+        crow::json::wvalue response; 
+        PatientPrescription prescribe;
 
-        //for (const auto& appointment : appointments[pid]) {
-            //appointmentList.push_back(appointment.to_json());
-        //}
+        prescribe.handlePrescription(id,treatment);
+        response[to_string(id)] = "Prescribed";
 
-        //response["appointments"] = std::move(appointmentList);
-        //return crow::response(response);
-    //});
+        return crow::response(response);
+
+    });
+
+    CROW_ROUTE(app, "/getMedicalRecords").methods("GET"_method)([&](const crow::request& req) {
+
+        int id =  atoi(req.url_params.get("pid"));
+        
+        crow::json::wvalue response; 
+        PatientPrescription prescribe;
+        string getDate = "";
+        string getTreatment = "";
+        for(auto const& [key, value]:prescribe.getMedicalRecords(id)){
+            cout<<key <<":"<<value<<::endl;
+            getDate = key;
+            getTreatment = value;
+        }
+        response[to_string(id)] = getTreatment;
+        return crow::response(response);
+
+    });
+
+    /*
+    ===========Task3==========
+    Handling billing and insurance claims
+    */
+    
+
+
     app.port(3333).run();
     return 0;
 }
