@@ -1,4 +1,5 @@
 g++ -o myfirstprogram myfirstprogram.cpp -std=c++17 -pthread
 
+g++ -o myfirstprogram myfirstprogram.cpp -std=c++17 -pthread -l sqlite3
 
 
