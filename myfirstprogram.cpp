@@ -5,6 +5,8 @@
 #include <map>
 #include "crow.h"
 #include <nlohmann/json.hpp>
+#include <sqlite3.h>
+
 
 
 using namespace std;
@@ -14,8 +16,10 @@ class Patient{
     public:
     string name;
     string medicalHistory;
+    string insuranceCoverage;
     string address;
     string appointment = "";
+    string visitPurpose = "";
     map<int,bool>hasAppointment;
 
     crow::json::wvalue to_json() const {
@@ -49,8 +53,9 @@ class AppointmentClass{
     //To book an appointment, map pid and docId
     //In the doctorclass, the following timeslot is mapped to docID 
     public:
-    map<int,int>patientToDocMap;
-    vector<string>availableTimeSlots = {"9:00","9:30","10:00","10:30","11:00","11:30","12:30"};
+        map<int,int>patientToDocMap;
+        vector<string>availableTimeSlots = {"9:00","9:30","10:00","10:30","11:00","11:30","12:30"};
+       
 };
 
 class PatientPrescription{
@@ -67,7 +72,7 @@ class PatientPrescription{
             prescription["03/12/24"] = treatment;
             //prescription["04/12/24"] = "Aspirin";
             //prescription["05/12/24"] = "Ibuprofen";
-            jsonData[to_string(pid)] = prescription;
+            jsonData[std::to_string(pid)] = prescription;
             std::ofstream file("prescription.json");
             //Saving data to prescription.json
             if (file.is_open()) {
@@ -89,9 +94,35 @@ class PatientPrescription{
                 std::cerr << "Error opening prescription.json" << std::endl;
             }
 
-           map<string, string> container = jsonData[to_string(pid)].get<map<string ,string>>();
+           map<string, string> container = jsonData[std::to_string(pid)].get<map<string ,string>>();
            return container;
         }
+};
+
+
+class Bills{
+    
+    Patient patientObj;//to get a pid and insurance coverage status
+    PatientPrescription prescriptionDetails;//if a patient receives medication, they need to pay the amount
+
+    public:
+        //Bills the insurance company of pid depending on the status
+        string bills(int id,string option){
+
+            if(option == "Doctor Visit"){
+                //Update the databasae for this 
+                return  "No payment / Billing the insurance company";
+            }else{
+                return "Pay the prescription";
+            }
+
+        }
+};
+
+class Insurance{
+    //Insurance claim logic also comes here 
+    //
+
 };
 
 
@@ -122,6 +153,183 @@ void initialiseDoctors(crow::SimpleApp app){
     }); 
 }
 
+
+static int callback(void *NotUsed, int argc, char **argv, char **azColName) {
+   int i;
+   for(i = 0; i<argc; i++) {
+      printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
+   }
+   printf("\n");
+   return 0;
+}
+
+//Used only single time for creating patient database
+int createTable(){
+
+    sqlite3 *db;
+    char *zErrMsg = 0;
+    int rc;
+
+    rc = sqlite3_open("test.db", &db);
+
+    if( rc ) {
+        fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
+        return(0);
+    } else {
+        fprintf(stderr, "Opened database successfully\n");
+        
+    }
+
+    /*const char* dropTable = "DROP TABLE IF EXISTS patient;";
+
+    // Execute the SQL command
+    rc = sqlite3_exec(db, dropTable, 0, 0, &zErrMsg);
+    if (rc != SQLITE_OK) {
+        std::cerr << "SQL error: " << zErrMsg << std::endl;
+        sqlite3_free(zErrMsg);
+    } else {
+        std::cout << "Table dropped successfully" << std::endl;
+    }*/
+    
+
+    //Patient table
+    const char* sql = "CREATE TABLE IF NOT EXISTS patient ("
+                  "ID INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
+                  "NAME TEXT NOT NULL, "
+                  "ADDRESS TEXT, "
+                  "INSURANCE TEXT, "
+                  "PURPOSE TEXT, "
+                  "APPOINTMENT TEXT);";
+    
+
+    rc = sqlite3_exec(db, sql, callback, 0, &zErrMsg);//Executing the sql command
+   
+    if( rc != SQLITE_OK ){
+        fprintf(stderr, "SQL error: %s\n", zErrMsg);
+        sqlite3_free(zErrMsg);
+    } else {
+        fprintf(stdout, "Table Ok\n");
+    }
+
+    return 0;
+}
+
+//Initial registration  of a patient 
+int registerPatient(string name,string address,string insurance,string purpose,string appo){//Parameter id, name and address at least for a basic information 
+
+    sqlite3 *db;
+    char *zErrMsg = 0;
+    int rc;
+
+    rc = sqlite3_open("test.db", &db);
+
+    if( rc ) {
+        fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
+        return(0);
+    } else {
+        fprintf(stderr, "Opened database successfully\n");
+        
+    }
+
+    string query = "INSERT INTO patient (NAME, ADDRESS, INSURANCE, PURPOSE, APPOINTMENT) VALUES ('" +name + "', " +
+               (address.empty() ? "NULL" : "'" + address + "'") + ", " +
+               (insurance.empty() ? "NULL" : "'" + insurance + "'") + ", " +
+               (purpose.empty() ? "NULL" : "'" + purpose + "'") + ", " +
+               (appo.empty() ? "NULL" : "'" + appo + "'") + ");";
+
+
+    const char* insertSql = query.c_str(); // Convert to const char*
+
+    /* Execute SQL statement for inserting the records*/
+    rc = sqlite3_exec(db, insertSql, callback, 0, &zErrMsg);
+   
+    if( rc != SQLITE_OK ){
+      fprintf(stderr, "SQL error inserting records: %s\n", zErrMsg);
+      sqlite3_free(zErrMsg);
+      return 404;
+    } else {
+      fprintf(stdout, "Records inserted successfully\n");
+      return 200;
+    }
+    sqlite3_close(db);
+}
+
+//Retrieve patients records 
+string retrieveData(int pid,string option){// for example... option == PURPOSE
+
+
+    sqlite3 *db;
+    sqlite3_stmt* stmt;
+    char *zErrMsg = 0;
+    int rc;
+
+    crow::json::wvalue response; 
+
+    /* Open database */
+   rc = sqlite3_open("test.db", &db);
+   
+   if( rc ) {
+      fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
+      return(0);
+   } else {
+      fprintf(stderr, "Opened database successfully / retrieve \n");
+   }
+
+    /* Create SQL statement for retrieving data*/
+   const char* data = "Callback function called";
+   string sql = "SELECT * from patient WHERE ID = " +to_string(pid)+";";
+
+   /* Execute SQL statement */
+   sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
+   
+   if( rc != SQLITE_OK ) {
+      fprintf(stderr, "SQL error preparing statement for retrieving: %s\n", zErrMsg);
+      sqlite3_free(zErrMsg);
+      sqlite3_close(db); 
+    }else{
+        cout<<"Good SQL"<<"\n";
+    }
+
+   
+    string name = "";
+    string address = "";
+    string insurance = "";
+    string purpose = "";
+    string appointment = "";
+
+    while ((rc = sqlite3_step(stmt)) == SQLITE_ROW) {
+
+        int id = sqlite3_column_int(stmt, 0);
+        name = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
+        address = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 2));
+        insurance = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 3));
+        purpose = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 4));
+        appointment = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 5));
+    }
+
+    if (rc != SQLITE_DONE) {
+        std::cerr << "Error while iterating rows: " << sqlite3_errmsg(db) << std::endl;
+    }
+
+    sqlite3_finalize(stmt);
+    sqlite3_close(db);
+
+    if(option == "PURPOSE"){
+        return purpose;
+    }
+     if(option == "INSURANCE"){
+        return insurance;
+    }
+     if(option == "APPOINTMENT"){
+        return appointment;
+    }
+     if(option == "ADDRESS"){
+        return address;
+    }
+
+    return "";
+}
+
 int main() {
     
     crow::SimpleApp app;//Used to initialise CROW server
@@ -130,31 +338,29 @@ int main() {
     //map<int, vector<Appointment>> appointments;  
     map<int,DoctorClass>doctorsMap;  
     
-    int doctorCounter = 0; 
-    // register a patient 
+    //int doctorCounter = 0; 
+
+    createTable();
+    
+    //To register a patient 
     // address:port/register?name=whatever whatever&street= 12312313 anywhere
-    //  patientCounter automatically increases by 1 when new patients are created
     //The patient can not have an appointment at the time of the registration
     CROW_ROUTE(app, "/register").methods("GET"_method)([&](const crow::request& req) {
         if (!req.url_params.get("name") || !req.url_params.get("address")) {
             return crow::response(404, "Missing 'name' or 'address' query parameter.");
         }
 
-        int patientCounter = 0;
         string name = req.url_params.get("name");
         string address = req.url_params.get("address");
-        Patient patientObject;
-        patientObject.name = name;
-        patientObject.address = address;
-        //Save patients data to a JSON file for now  
-
         crow::json::wvalue jsonRes;
-
-        patients[patientCounter] = patientObject;
-        patientObject.hasAppointment[patientCounter] = false;//No appointment 
-        jsonRes[std::to_string(patientCounter)] = patientObject.to_json(); 
-        patientCounter++;
-
+       
+        int status = registerPatient(name,address,"Public","Doctor Visit","Null");//storing to a database
+        
+        if(status == 200){
+            jsonRes[name] = "Registered"; 
+        }else{
+            jsonRes[name] = "Please enter valid details";
+        }
         return crow::response(jsonRes);
     });
     
@@ -170,6 +376,10 @@ int main() {
         int pid = atoi(req.url_params.get("pid"));
         string date = req.url_params.get("date");
         string time = req.url_params.get("time");
+
+
+
+
 
         //Loop through the doctors map and associate docId and pid, 
         //then associate pid, docId with the timeslot, removing the already-taken timeslot from  the vector  
@@ -188,6 +398,7 @@ int main() {
             if(find(book.availableTimeSlots.begin(), book.availableTimeSlots.end(), time) != book.availableTimeSlots.end()){
                 cout<<"Time slot found: "<<time;
                 patientBookAppo.appointment = time;
+                patientBookAppo.visitPurpose = "Doctor Visit";
                 doctorObj.slots[tempContainer] = patientBookAppo.appointment;
                 if(patientBookAppo.hasAppointment[pid] == false){
                     patientBookAppo.hasAppointment[pid] = true; 
@@ -216,17 +427,56 @@ int main() {
     /*
     ==========Task 2========== 
     Providing prescription to patients
+    http://0.0.0.0:3333/prescribe?pid=9&name=Anthony&treatment=Paracetamol 
     */
 
     CROW_ROUTE(app, "/prescribe").methods("GET"_method)([&](const crow::request& req) {
         
         int id =  atoi(req.url_params.get("pid"));
         string treatment = req.url_params.get("treatment");
+        string name = req.url_params.get("name");
         crow::json::wvalue response; 
         PatientPrescription prescribe;
 
+        //patient prescription database 
+        sqlite3 *db;
+        char *zErrMsg = 0;
+        int rc;
+
+        rc = sqlite3_open("test.db", &db);
+        if( rc ) {
+            fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
+        } else {
+            fprintf(stderr, "Opened database successfully ph yeah\n");
+        }
+       const char* sql = "CREATE TABLE IF NOT EXISTS prescription (" "ID INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " "NAME TEXT NOT NULL, " "PRESCRIPTION TEXT);";
+
+       rc = sqlite3_exec(db, sql, callback, 0, &zErrMsg);//Executing the sql command
+   
+        if( rc != SQLITE_OK ){
+            fprintf(stderr, "SQL error creating prescription table: %s\n", zErrMsg);
+            sqlite3_free(zErrMsg);
+        } else {
+            fprintf(stdout, "Prescription table ok\n");
+        }
+
+        string query = "INSERT INTO prescription (NAME, PRESCRIPTION) VALUES ('" + name + "','"+ treatment +"');";
+        const char* insertSql = query.c_str(); // Convert to const char*
+        sqlite3_stmt *stmt;
+        /* Execute SQL statement for inserting the records*/
+        rc = sqlite3_prepare_v2(db, insertSql, -1,&stmt,nullptr);
+    
+        if( rc != SQLITE_OK ){
+        fprintf(stderr, "SQL error inserting records: %s\n", zErrMsg);
+            sqlite3_free(zErrMsg);
+        } else {
+        fprintf(stdout, "Records inserted successfully\n");
+       
+        }
+        sqlite3_close(db);
+
         prescribe.handlePrescription(id,treatment);
-        response[to_string(id)] = "Prescribed";
+        response[name] = "Prescribed";
 
         return crow::response(response);
 
@@ -245,16 +495,46 @@ int main() {
             getDate = key;
             getTreatment = value;
         }
-        response[to_string(id)] = getTreatment;
+        response[std::to_string(id)] = getTreatment;
         return crow::response(response);
 
     });
 
     /*
-    ===========Task3==========
+    ===========Task3=========
     Handling billing and insurance claims
     */
-    
+
+    CROW_ROUTE(app, "/bill").methods("GET"_method)([&](const crow::request& req) {
+
+        crow::json::wvalue response; 
+        Insurance insuranceCompany;
+        Bills bill;
+        
+        int id =  atoi(req.url_params.get("pid"));
+        //For example If the purpose of visit is simply visiting a doctor, no payment
+        //But if you get prescription, pay the amount 
+        string option = retrieveData(id,"PURPOSE");
+        response[to_string(id)] = bill.bills(id,option);
+        
+        return crow::response(response);
+
+    });
+
+    CROW_ROUTE(app, "/insurance_claim").methods("GET"_method)([&](const crow::request& req) {
+
+        crow::json::wvalue response; 
+       
+        return crow::response(response);
+
+    });
+
+
+
+    /* ==========Task4==========
+    Jalal 
+    */
+        
 
 
     app.port(3333).run();
