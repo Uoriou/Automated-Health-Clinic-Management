@@ -8,9 +8,10 @@
 #include <sqlite3.h>
 
 
-
+//Mix of database and json file 
 using namespace std;
 nlohmann::json jsonData;
+nlohmann::json j;
 
 class Patient{
     public:
@@ -112,8 +113,11 @@ class Bills{
             if(option == "Doctor Visit"){
                 //Update the databasae for this 
                 return  "No payment / Billing the insurance company";
+            }
+            if (option == "NULL"){
+                return "NULL";
             }else{
-                return "Pay the prescription";
+                return "Pay the amount";
             }
 
         }
@@ -124,6 +128,115 @@ class Insurance{
     //
 
 };
+
+
+class Inventory {
+private:
+    map<string, int> supplies;
+    map<string, int> threshold;
+    string inventoryFile = "inventory.json";
+
+    void addtoinventory() {
+        ifstream file(inventoryFile);
+        if (file.is_open()) {
+            //json j;
+            file >> j;
+            supplies = j["supplies"].get<map<string, int>>();
+            threshold = j["threshold"].get<map<string, int>>();
+            file.close();
+        }
+    }
+
+    void saveinventory() {
+        ofstream file(inventoryFile);
+        if (file.is_open()) {
+            //json j;
+            j["supplies"] = supplies;
+            j["threshold"] = threshold;
+            file << j.dump(4); 
+            file.close();
+        }
+    }
+
+    void resupply(const string &item) {
+        if (threshold.find(item) != threshold.end()) {
+            supplies[item] = threshold[item];
+            saveinventory();
+        }
+    }
+
+public:
+    Inventory() {
+        addtoinventory();
+    }
+
+    void addsupply(const string &item, int quantity) {
+        supplies[item] += quantity;
+        saveinventory();
+    }
+
+    void setthreshold(const string &item,  int thresholds) {
+        threshold[item] = thresholds;
+        saveinventory();
+    }
+
+    int checkSupply(const string &item) const {
+        auto it = supplies.find(item);
+        if (it != supplies.end()) {
+            return it->second;
+        }
+        return -1;
+    }
+
+    bool removeSupply(const string &item, int quantity) {
+        auto it = supplies.find(item);
+        if (it != supplies.end() && it->second >= quantity) {
+            supplies[item] -= quantity;
+            saveinventory();
+
+            if (supplies[item] == 0) {
+                resupply(item);
+            }
+
+            return true;
+        }
+        return false;
+    }
+
+    crow::json::wvalue getInventoryJSON() const {
+        crow::json::wvalue json;
+        for (const auto &entry : supplies) {
+            json[entry.first] = entry.second;
+        }
+        return json;
+    }
+
+    crow::json::wvalue checkthreshold() const {
+        crow::json::wvalue response;
+        bool lowSupplyExists = false;
+
+        for (const auto &entry : supplies) {
+            auto thresholdIt = threshold.find(entry.first);
+            if (thresholdIt != threshold.end()) {
+                int threshold = thresholdIt->second;
+                if (entry.second < 0.2 * threshold) {
+                    response["low_supplies"] = {{"item", entry.first}, {"current_quantity", entry.second}, {"threshold", threshold}};
+                    lowSupplyExists = true;
+                }
+            }
+        }
+
+        if (!lowSupplyExists) {
+            response["message"] = "stock is full";
+        } else {
+            response["status"] = "warning";
+            response["message"] = "Some items are running low.";
+        }
+
+        return response;
+    }
+};
+
 
 
 void initialiseDoctors(crow::SimpleApp app){
@@ -214,7 +327,7 @@ int createTable(){
     return 0;
 }
 
-//Initial registration  of a patient 
+//Initial   tration  of a patient 
 int registerPatient(string name,string address,string insurance,string purpose,string appo){//Parameter id, name and address at least for a basic information 
 
     sqlite3 *db;
@@ -254,6 +367,11 @@ int registerPatient(string name,string address,string insurance,string purpose,s
     sqlite3_close(db);
 }
 
+string retrievePatientTreatment(){
+return "";
+    
+}
+
 //Retrieve patients records 
 string retrieveData(int pid,string option){// for example... option == PURPOSE
 
@@ -277,7 +395,7 @@ string retrieveData(int pid,string option){// for example... option == PURPOSE
 
     /* Create SQL statement for retrieving data*/
    const char* data = "Callback function called";
-   string sql = "SELECT * from patient WHERE ID = " +to_string(pid)+";";
+   string sql = "SELECT * from patient WHERE ID = " +std::to_string(pid)+";";
 
    /* Execute SQL statement */
    sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
@@ -377,10 +495,6 @@ int main() {
         string date = req.url_params.get("date");
         string time = req.url_params.get("time");
 
-
-
-
-
         //Loop through the doctors map and associate docId and pid, 
         //then associate pid, docId with the timeslot, removing the already-taken timeslot from  the vector  
         AppointmentClass book;
@@ -470,7 +584,7 @@ int main() {
         fprintf(stderr, "SQL error inserting records: %s\n", zErrMsg);
             sqlite3_free(zErrMsg);
         } else {
-        fprintf(stdout, "Records inserted successfully\n");
+            fprintf(stdout, "Records inserted successfully\n");
        
         }
         sqlite3_close(db);
@@ -505,38 +619,73 @@ int main() {
     Handling billing and insurance claims
     */
 
-    CROW_ROUTE(app, "/bill").methods("GET"_method)([&](const crow::request& req) {
+    string purpose = "test ";
+
+    CROW_ROUTE(app, "/bill").methods("GET"_method)([&purpose](const crow::request& req) {
 
         crow::json::wvalue response; 
         Insurance insuranceCompany;
         Bills bill;
-        
         int id =  atoi(req.url_params.get("pid"));
         //For example If the purpose of visit is simply visiting a doctor, no payment
         //But if you get prescription, pay the amount 
         string option = retrieveData(id,"PURPOSE");
-        response[to_string(id)] = bill.bills(id,option);
+        purpose = option;
+        cout<<purpose;
+
+        response[std::to_string(id)] = bill.bills(id,option);
         
         return crow::response(response);
 
     });
 
-    CROW_ROUTE(app, "/insurance_claim").methods("GET"_method)([&](const crow::request& req) {
+    http://0.0.0.0:3333/insurance_claim?pid=2 
 
+    CROW_ROUTE(app, "/insurance_claim").methods("GET"_method)([&purpose](const crow::request& req) {
+
+        int id =  atoi(req.url_params.get("pid"));
+
+        cout<<purpose;//Debugging 
         crow::json::wvalue response; 
-       
+        string coverage = retrieveData(id,"INSURANCE");
+        string status;
+        if (purpose == "Doctor Visit" && coverage == "Public") {
+            status = "Covered";
+        }
+        response[std::to_string(id)] = status;
         return crow::response(response);
 
     });
-
-
 
     /* ==========Task4==========
+    Inventory Management
     Jalal 
     */
-        
+    Inventory inventory;
+    CROW_ROUTE(app,"/inventory/set_threshold/<string>/<int>")
+    ([&inventory](const string &item, int threshold){
+        inventory.setthreshold(item,threshold);
+        return crow::json::wvalue{{"status","succes"},{"message","Threshold is set for "+ item}};
 
+    });
+    CROW_ROUTE(app,"/inventory/low_supplies")
+        ([&inventory]() {
+        auto lowSupplies = inventory.checkthreshold();
+        return crow::response(lowSupplies);
+    });
+    CROW_ROUTE(app, "/inventory/all")
+    ([&inventory]() {
+        return inventory.getInventoryJSON();
+    });
+    CROW_ROUTE(app, "/inventory/add_supply/<string>/<int>")
+    ([&inventory](const string &item, int quantity) {
+        
+        inventory.addsupply(item, quantity);
+        return crow::json::wvalue{{"status", "success"}, {"message", item + " updated with " + to_string(quantity) + " units"}};
+    });
 
     app.port(3333).run();
     return 0;
 }
+
+
