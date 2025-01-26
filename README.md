@@ -24,6 +24,13 @@ Make sure the following C++ libraries are installed
   
 -  Database: SQLlite3 / Macs -> brew install sqlite3 / Linux -> sudo apt-get install libsqlite3-dev
 
+## How to run the application:
+
+After navigating to the correct folder where the dowloaded git file is located, run the application 
+by specifying the type of your chosen compiler and the file name followed by the command for running the libraries -> 
+
+g++ -o myfirstprogram myfirstprogram.cpp -std=c++17 -pthread -l sqlite3 
+
 ## How to access the application:
 
 Open your browser and navigate to http://localhost:port for the frontend. Here is an example use for registering a patient -> 
