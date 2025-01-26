@@ -1,10 +1,10 @@
-#Automated Health Clinic Management System 
+# Automated Health Clinic Management System 
 
 A simple program designed to streamline patient care and clinic management through automation.
 Features include, a registration process, managing patients info, a prescription assignment and payment process.
 
 
-##Requirements:
+## Requirements:
 
 To run the Automated Health Clinic, ensure your system meets the following requirements:
 
@@ -14,7 +14,7 @@ To run the Automated Health Clinic, ensure your system meets the following requi
   
 - Databsese SQLlite3
 
-##Libraries used:
+## Libraries used:
 
 Make sure the following C++ libraries are installed
 
@@ -24,7 +24,7 @@ Make sure the following C++ libraries are installed
   
 -  Database: SQLlite3 / Macs -> brew install sqlite3 / Linux -> sudo apt-get install libsqlite3-dev
 
-##How to access the application:
+## How to access the application:
 
 Open your browser and navigate to http://localhost:port for the frontend. Here is an example use for registering a patient -> 
 
