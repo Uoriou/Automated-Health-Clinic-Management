@@ -4,7 +4,7 @@ A simple program designed to streamline patient care and clinic management throu
 Features include, a registration process, managing patients info, a prescription assignment and payment process.
 
 
-## Requirements:
+## Technical Requirements:
 
 To run the Automated Health Clinic, ensure your system meets the following requirements:
 
@@ -16,7 +16,7 @@ To run the Automated Health Clinic, ensure your system meets the following requi
 
 ## Libraries used:
 
-Make sure the following C++ libraries are installed
+Make sure the following libraries are installed
 
 - Crow (Web Framework) Clone the git -> https://github.com/CrowCpp/Crow.git
   
