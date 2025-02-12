@@ -5,7 +5,7 @@ The local community health clinic is transitioning from a paper-based system to 
 digital one. They need a system where patients can register with their details (name,
 address, medical history) and receive a unique patient ID. Once registered, patients
 should be able to book appointments using their patient ID.
-Therefore we created a simple program designed to streamline patient care and clinic management through automation.
+Therefore we created a simple program in C++, designed to streamline patient care and clinic management through automation.
 Features include, a registration process, managing patients info, a prescription assignment and payment process.
 
 
@@ -15,7 +15,7 @@ To run the Automated Health Clinic, ensure your system meets the following requi
 
 - Operating System: Windows, macOS, or Linux
 
-- C++ Compiler: GCC 9.3 or higher / g++
+- C++ and C++ Compiler: GCC 9.3 or higher / g++
   
 - Databsese SQLlite3
 
