@@ -1,6 +1,11 @@
 # Automated Health Clinic Management System 
 
-A simple program designed to streamline patient care and clinic management through automation.
+## Project Scope / Project Objectives
+The local community health clinic is transitioning from a paper-based system to a
+digital one. They need a system where patients can register with their details (name,
+address, medical history) and receive a unique patient ID. Once registered, patients
+should be able to book appointments using their patient ID.
+Therefore we created a simple program designed to streamline patient care and clinic management through automation.
 Features include, a registration process, managing patients info, a prescription assignment and payment process.
 
 
@@ -18,9 +23,7 @@ To run the Automated Health Clinic, ensure your system meets the following requi
 
 Make sure the following libraries are installed
 
-- Crow (Web Framework) Clone the git -> https://github.com/CrowCpp/Crow.git
-  
-- nlohmann/json (JSON Parsing) Macs -> brew install nlohmann-json / Linux-> sudo apt-get install nlohmann-json3-dev
+- Crow (C++ Web Framework) Clone the git -> https://github.com/CrowCpp/Crow.git
   
 -  Database: SQLlite3 / Macs -> brew install sqlite3 / Linux -> sudo apt-get install libsqlite3-dev
 
@@ -37,6 +40,7 @@ Open your browser and navigate to http://localhost:port for the frontend. Here i
 
 http://0.0.0.0:3333/register?name=Anthony&address=Betis
 
+## Manual Guide
   
 
 
