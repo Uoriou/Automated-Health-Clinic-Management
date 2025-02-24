@@ -285,9 +285,9 @@ public:
 
 //Printing the entries in the database
 //Helper functions for printing the entries in the database 
+//This function is used for appointment booking 
 vector<string>container;
 vector<string>okAppos;
-
 
 vector<string> appointmentsHandler(vector<string>& container, string id,string date, bool isAddMode){
     
@@ -299,7 +299,7 @@ vector<string> appointmentsHandler(vector<string>& container, string id,string d
         return container;
     }
 }
-
+//This function is used for appointment booking 
 static int callback(void *userData, int argc, char **argv, char **azColName) {
     int i;
     string key = "";
@@ -462,7 +462,6 @@ crow::json::wvalue retrieveData(int pid,string dbName){// for example... option 
 
         /* Create SQL statement for retrieving data*/
         string sql = "SELECT * from patient WHERE ID = " +std::to_string(pid)+";";
-
         /* Execute SQL statement */
         sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
     
@@ -549,12 +548,19 @@ crow::json::wvalue retrieveData(int pid,string dbName){// for example... option 
 }
 
 //Retrieve patients records for other operation purposes
-string retrievePatient(int pid,string option){// for example... option == PURPOSE
+string retrieveOnePatientRecord(int pid,string option){// for example... option == PURPOSE
 
     sqlite3 *db;
     sqlite3_stmt* stmt;
-    char *zErrMsg = 0;
+
     int rc;
+    char *zErrMsg = 0;
+
+    string name = "";
+    string address = "";
+    string insurance = "";
+    string purpose = "";
+    string appointment = "";
 
     crow::json::wvalue response; 
 
@@ -570,8 +576,8 @@ string retrievePatient(int pid,string option){// for example... option == PURPOS
 
     /* Create SQL statement for retrieving data*/
    const char* data = "Callback function called";
+   //Why it gets executed when id doesnt exisit in the table ???/
    string sql = "SELECT * from patient WHERE ID = " +std::to_string(pid)+";";
-
    /* Execute SQL statement */
    sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
    
@@ -583,14 +589,11 @@ string retrievePatient(int pid,string option){// for example... option == PURPOS
         cout<<"Good SQL"<<"\n";
     }
 
-    string name = "";
-    string address = "";
-    string insurance = "";
-    string purpose = "";
-    string appointment = "";
-
+    
+    // Check if any rows were actually returned
+    bool rowFound = false;
     while ((rc = sqlite3_step(stmt)) == SQLITE_ROW) {
-
+        rowFound = true;
         int id = sqlite3_column_int(stmt, 0);
         name = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
         address = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 2));
@@ -599,14 +602,17 @@ string retrievePatient(int pid,string option){// for example... option == PURPOS
         appointment = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 5));
 
     }
-
     if (rc != SQLITE_DONE) {
         std::cerr << "Error while iterating rows: " << sqlite3_errmsg(db) << std::endl;
     }
 
-    sqlite3_finalize(stmt);
-    sqlite3_close(db);
-
+    // Return empty string when no patient found
+    if (!rowFound) {
+        sqlite3_finalize(stmt);
+        sqlite3_close(db);
+        return "NF"; 
+    }
+    
     if (option == "NAME"){
         return name;
     }
@@ -622,6 +628,9 @@ string retrievePatient(int pid,string option){// for example... option == PURPOS
     if(option == "APPOINTMENT"){
         return appointment;
     }
+
+    sqlite3_finalize(stmt);
+    sqlite3_close(db);
     
     return "nullptr";
 }
@@ -852,7 +861,7 @@ int main() {
             
             int id = std::stoi(pid);
             //Get the name of a patient from patient database
-            string patientName = retrievePatient(id,"NAME");
+            string patientName = retrieveOnePatientRecord(id,"NAME");
             //PatientPrescription prescribe;
     
             //patient prescription database 
@@ -922,9 +931,8 @@ int main() {
     Handling billing and insurance claims
     */
 
-    string purpose = "test ";
 
-    CROW_ROUTE(app, "/bill").methods("GET"_method)([&purpose](const crow::request& req) {
+    CROW_ROUTE(app, "/bill").methods("GET"_method)([&](const crow::request& req) {
 
         crow::json::wvalue payment; 
         Insurance insuranceCompany;
@@ -937,15 +945,17 @@ int main() {
             //but let me see if this works
             int id =  atoi(req.url_params.get("pid"));
             // Now it is using the purpose but eventually also use prescription
-            auto purpose = retrievePatient(id,"PURPOSE"); 
-            if(purpose == "Doctor Visit"){
-                //Update the databasae for this 
+            auto purpose = retrieveOnePatientRecord(id,"PURPOSE"); 
+            if(purpose == "Doctor Visit"){ 
                 payment[std::to_string(id)] = "No payment / Billing the insurance company";
                 return crow::response(payment);            
             }
             if (purpose == "Null"){
                 payment[std::to_string(id)] = "Null";
                 return response(payment);
+            }
+            if(purpose == "NF"){
+                return crow::response(404, "Patient not found");
             }
             else{
                 payment[std::to_string(id)] = "Pay the amount";
@@ -969,7 +979,7 @@ int main() {
 
     //http://0.0.0.0:3333/insurance_claim?pid=2 
 
-    CROW_ROUTE(app, "/insurance_claim").methods("GET"_method)([&purpose](const crow::request& req) {
+    CROW_ROUTE(app, "/insurance_claim").methods("GET"_method)([&](const crow::request& req) {
 
         int id =  atoi(req.url_params.get("pid"));
 
