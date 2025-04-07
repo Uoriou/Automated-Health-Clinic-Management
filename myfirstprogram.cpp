@@ -336,9 +336,9 @@ static int callback(void *userData, int argc, char **argv, char **azColName) {
     }
     for(auto const& [key, val] : patientData)
     {
-        std::cout << key        // string (key)
+        std::cout << key        
                   << ':'  
-                  << val        // string's value
+                  << val        
                   << std::endl;
     }
    printf("\n");
