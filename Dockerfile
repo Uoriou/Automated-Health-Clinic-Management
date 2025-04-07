@@ -16,5 +16,6 @@ RUN git clone --depth=1 https://github.com/CrowCpp/Crow.git || \
 (echo "Crow clone failed! Retrying..." && sleep 3 && git clone --depth=1 https://github.com/CrowCpp/Crow.git)
 COPY . /app
 RUN g++ -o myfirstprogram myfirstprogram.cpp -std=c++17 -pthread -l sqlite3 -I/app/Crow/include -I/usr/include/asio -DASIO_STANDALONE
-EXPOSE 3333
+RUN ls -l myfirstprogram && file myfirstprogram
+EXPOSE 8080
 CMD ["./myfirstprogram"]

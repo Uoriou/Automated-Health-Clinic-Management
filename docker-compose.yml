@@ -2,7 +2,5 @@ services:
   cpp_app:
     build: .
     ports:
-      - "3333:3333" 
-    volumes:
-      - .:/app
+      - "8080:8080" 
     command: ./myfirstprogram
