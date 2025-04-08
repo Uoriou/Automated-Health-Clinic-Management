@@ -183,112 +183,139 @@ class Insurance{
 };
 
 
-/*class Inventory {
-private:
-    map<string, int> supplies;
-    map<string, int> threshold;
-    string inventoryFile = "inventory.json";
+class Inventory {
 
-    void addtoinventory() {
-        ifstream file(inventoryFile);
-        if (file.is_open()) {
-            //json j;
-            file >> j;
-            supplies = j["supplies"].get<map<string, int>>();
-            threshold = j["threshold"].get<map<string, int>>();
-            file.close();
+    private:
+        map<string, int> supplies; // quantity of medical supplies
+        map<string, int> threshold;
+        string item = ""; // The name of the medical supplies, syringes, bandages, etc.
+        
+
+        // here call the createInventoryTable() 
+    public:
+        //Getter
+        string getItem(){
+            return item;
         }
-    }
 
-    void saveinventory() {
-        ofstream file(inventoryFile);
-        if (file.is_open()) {
-            //json j;
-            j["supplies"] = supplies;
-            j["threshold"] = threshold;
-            file << j.dump(4); 
-            file.close();
+        map<string, int> getSupplies() const {
+            return supplies;
         }
-    }
-
-    void resupply(const string &item) {
-        if (threshold.find(item) != threshold.end()) {
-            supplies[item] = threshold[item];
-            saveinventory();
+        map<string, int> getThreshold() const {
+            return threshold;
         }
-    }
-
-public:
-    Inventory() {
-        addtoinventory();
-    }
-
-    void addsupply(const string &item, int quantity) {
-        supplies[item] += quantity;
-        saveinventory();
-    }
-
-    void setthreshold(const string &item,  int thresholds) {
-        threshold[item] = thresholds;
-        saveinventory();
-    }
-
-    int checkSupply(const string &item) const {
-        auto it = supplies.find(item);
-        if (it != supplies.end()) {
-            return it->second;
+        //Constructor in C++ 
+        Inventory(string item, const map<string, int> &supplies, const map<string, int> &threshold) {
+            this->item = item;
+            this->supplies = supplies;
+            this->threshold = threshold;
+            //addtoinventory();
         }
-        return -1;
-    }
+        
+        void addsupply(const string &item, int quantity) {
 
-    bool removeSupply(const string &item, int quantity) {
-        auto it = supplies.find(item);
-        if (it != supplies.end() && it->second >= quantity) {
-            supplies[item] -= quantity;
-            saveinventory();
 
-            if (supplies[item] == 0) {
-                resupply(item);
+            sqlite3 *db;
+            char *zErrMsg = 0;
+            int rc;
+        
+            rc = sqlite3_open("test.db", &db);
+        
+            if( rc ) {
+                fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
+                return;
+
+            } else {
+                fprintf(stderr, "Opened database successfully\n");
+                
             }
 
-            return true;
+            sqlite3_exec(db, "PRAGMA foreign_keys = ON;", NULL, NULL, NULL);
+        
+            string query = "INSERT INTO inventory (ITEM, QUANTITY) VALUES ('" +item + "', " +
+                       
+                       (supplies.empty() ? "NULL" : "'" + supplies + "'")+ ");";
+        
+        
+                const char* insertSql = query.c_str(); // Convert to const char*
+            
+                /* Execute SQL statement for inserting the records*/
+                rc = sqlite3_exec(db, insertSql, callback, 0, &zErrMsg);
+            
+                if( rc != SQLITE_OK ){
+                    fprintf(stderr, "SQL error inserting records: %s\n", zErrMsg);
+                    sqlite3_free(zErrMsg);
+                
+                } else {
+                    fprintf(stdout, "Records inserted successfully\n");
+                
+                }
+                sqlite3_close(db);
+            //supplies[item] += quantity;
+            //saveinventory();
         }
-        return false;
-    }
 
-    crow::json::wvalue getInventoryJSON() const {
-        crow::json::wvalue json;
-        for (const auto &entry : supplies) {
-            json[entry.first] = entry.second;
+        void setthreshold(const string &item,  int thresholds) {
+            threshold[item] = thresholds;
+            
         }
-        return json;
-    }
 
-    crow::json::wvalue checkthreshold() const {
-        crow::json::wvalue response;
-        bool lowSupplyExists = false;
+        int checkSupply(const string &item) const {
+            auto it = supplies.find(item);
+            if (it != supplies.end()) {
+                return it->second;
+            }
+            return -1;
+        }
 
-        for (const auto &entry : supplies) {
-            auto thresholdIt = threshold.find(entry.first);
-            if (thresholdIt != threshold.end()) {
-                int threshold = thresholdIt->second;
-                if (entry.second < 0.2 * threshold) {
-                    response["low_supplies"] = {{"item", entry.first}, {"current_quantity", entry.second}, {"threshold", threshold}};
-                    lowSupplyExists = true;
+        bool removeSupply(const string &item, int quantity) {
+            auto it = supplies.find(item);
+            if (it != supplies.end() && it->second >= quantity) {
+                supplies[item] -= quantity;
+               
+
+                if (supplies[item] == 0) {
+                    //resupply(item);
+                }
+
+                return true;
+            }
+            return false;
+        }
+
+        crow::json::wvalue getInventoryJSON() const {
+            crow::json::wvalue json;
+            for (const auto &entry : supplies) {
+                json[entry.first] = entry.second;
+            }
+            return json;
+        }
+
+        crow::json::wvalue checkthreshold() const {
+            crow::json::wvalue response;
+            bool lowSupplyExists = false;
+
+            for (const auto &entry : supplies) {
+                auto thresholdIt = threshold.find(entry.first);
+                if (thresholdIt != threshold.end()) {
+                    int threshold = thresholdIt->second;
+                    if (entry.second < 0.2 * threshold) {
+                        response["low_supplies"] = {{"item", entry.first}, {"current_quantity", entry.second}, {"threshold", threshold}};
+                        lowSupplyExists = true;
+                    }
                 }
             }
-        }
 
-        if (!lowSupplyExists) {
-            response["message"] = "stock is full";
-        } else {
-            response["status"] = "warning";
-            response["message"] = "Some items are running low.";
-        }
+            if (!lowSupplyExists) {
+                response["message"] = "stock is full";
+            } else {
+                response["status"] = "warning";
+                response["message"] = "Some items are running low.";
+            }
 
-        return response;
-    }
-};*/
+            return response;
+        }
+};
 
 
 //Printing the entries in the database
@@ -392,7 +419,6 @@ int createTable(){
         
     }
     
-
     //Patient table initialised
     const char* sql = "CREATE TABLE IF NOT EXISTS patient ("
                   "ID INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
@@ -402,6 +428,41 @@ int createTable(){
                   "PURPOSE TEXT, "
                   "APPOINTMENT TEXT,"
                   "PRESCRIPTION TEXT);";
+    
+
+    rc = sqlite3_exec(db, sql, callback, 0, &zErrMsg);//Executing the sql command
+   
+    if( rc != SQLITE_OK ){
+        fprintf(stderr, "SQL error: %s\n", zErrMsg);
+        sqlite3_free(zErrMsg);
+    } else {
+        fprintf(stdout, "Table Ok\n");
+    }
+
+    return 0;
+}
+
+int createInventoryTable(){
+
+    sqlite3 *db;
+    char *zErrMsg = 0;
+    int rc;
+
+    rc = sqlite3_open("test.db", &db);
+
+    if( rc ) {
+        fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
+        return(0);
+    } else {
+        fprintf(stderr, "Opened database successfully\n");
+        
+    }
+    
+    //Inventory table initialised
+    const char* sql = "CREATE TABLE IF NOT EXISTS inventory ("
+                  "ID INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
+                  "ITEM TEXT NOT NULL, "
+                  "QUANTITY INTEGER NOT NULL);";
     
 
     rc = sqlite3_exec(db, sql, callback, 0, &zErrMsg);//Executing the sql command
@@ -460,7 +521,7 @@ int updatePatient(string name, int pid,string date,string time){
     sqlite3_close(db);
 }
 
-//Retrieve patients records 
+//Retrieve patients records, i might not need this..... 
 string retrieveData(int pid,string dbName){// for example... option == PURPOSE
 
     crow::json::wvalue response; 
@@ -674,6 +735,7 @@ int main() {
     char *zErrMsg = 0;
     int rc;
     crow::SimpleApp app;//Used to initialise CROW server 
+    createInventoryTable(); 
     
 
     /*
@@ -719,28 +781,6 @@ int main() {
             }return crow::response(jsonRes);
         }
     });
-
-    //Get a specified patient details, there are two db options patient and prescription
-    CROW_ROUTE(app, "/all").methods("GET"_method)([&](const crow::request& req) {
-        if(!req.url_params.get("pid")){
-            
-            return crow::response(404, "Patient ID missing, please enter the patient ID");
-        }else{
-
-            try{
-                //const char* pidStr = req.url_params.get("pid");
-                //std::string pid = pidStr;
-                //int id = std::stoi(pid); 
-                int id = std::stoi(req.url_params.get("pid"));
-                auto data = retrieveData(id,"patient"); 
-                return crow::response(data);
-            }catch(exception e){
-                return crow::response(404, "Something went wrong, please try again with correct details");
-            }
-        }
-
-    });
-
 
     CROW_ROUTE(app, "/checkBookingSlots").methods("GET"_method)([&](const crow::request& req) {
         //just display the available slots
@@ -902,13 +942,18 @@ int main() {
             auto response = retrieveOnePatientRecord(pid,"PRESCRIPTION");
             cout<<response; // OK now i can get the records 
             
-
+            // The problem might be because of the execution of the sql statement 
+            /* Open database */
+            rc = sqlite3_open("test.db", &db);
+            
+            if( rc ) {
+                fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
+            } else {
+                fprintf(stderr, "Opened database successfully / retrieve \n");
+            }
             /*string query = "SELECT patient.NAME, prescription.PRESCRIPTION FROM patient "
             "INNER JOIN prescription ON patient.ID = prescription.PATIENT_ID "
             "WHERE patient.ID = " + std::to_string(pid) + ";";
-
-           
-    
             rc = sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, NULL);
             sqlite3_bind_int(stmt, 1, pid);
             
@@ -916,10 +961,20 @@ int main() {
                 name = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
                 prescription = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 6));
                 cout << "Patient: " << name << ", Prescription: " << prescription << endl;
-            }
+            }*/
 
+            string query = "SELECT * FROM patient WHERE ID =  " + std::to_string(pid) + ";";
+            rc = sqlite3_exec(db, query.c_str(), callback, 0, &zErrMsg);
+   
+            if( rc != SQLITE_OK ) {
+               fprintf(stderr, "SQL error: %s\n", zErrMsg);
+               sqlite3_free(zErrMsg);
+            } else {
+               fprintf(stdout, "Operation done successfully\n");
+            }
+            sqlite3_close(db);
             sqlite3_finalize(stmt);
-            sqlite3_close(db);*/
+            sqlite3_close(db);
 
     
             crow::json::wvalue jsonResponse;
@@ -1001,6 +1056,9 @@ int main() {
     /* 
     ==========Task4==========
     Inventory Management
+   
+    1 ) Implement a procedure to record and update the quantity of medical supplies
+    2 ) Alert a member of the medical staff when the quantity of a supply falls below a certain threshold
     */
 
     /*
