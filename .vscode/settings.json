@@ -67,6 +67,9 @@
         "functional": "cpp",
         "random": "cpp",
         "tuple": "cpp",
-        "type_traits": "cpp"
+        "type_traits": "cpp",
+        "format": "cpp",
+        "system_error": "cpp",
+        "utility": "cpp"
     }
 }
