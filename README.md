@@ -19,18 +19,32 @@ To run the Automated Health Clinic, ensure your system meets the following requi
 
 ## Libraries used:
 
-Make sure the following libraries are installed
-
 - Crow (C++ Web Framework) Clone the git -> https://github.com/CrowCpp/Crow.git
   
 -  Database: SQLlite3 / Macs -> brew install sqlite3 / Linux -> sudo apt-get install libsqlite3-dev
 
-## How to run the application:
+## Installation Guidline
 
-After navigating to the correct folder where the dowloaded git file is located, run the application 
-by specifying the type of your chosen compiler and the file name followed by the command for running the libraries -> 
+- Please install Docker first
+- Clone this BIM repository
 
-g++ -o myfirstprogram myfirstprogram.cpp -std=c++17 -pthread -l sqlite3 
+## Run the docker image
+
+Once Docker is installed, build the docker image 
+
+  - docker build -t "your-image-name" .
+    
+Then, run the container
+
+  - docker run -p 3333:3333 <your-image-name>
+
+Alternatively, if there is a docker-compose.yml file, 
+you can build and start all services with a single command:
+
+  - docker compose up --build
+    
+To stop the continer press Ctrl+C
+
 
 ## How to access the application:
 
@@ -38,7 +52,7 @@ Open your browser and navigate to http://localhost:port for the frontend. Here i
 
 http://0.0.0.0:3333/register?name=Anthony&address=Betis
 
-## Manual Guide
+
   
 
 
