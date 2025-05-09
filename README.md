@@ -25,7 +25,7 @@ To run the Automated Health Clinic, ensure your system meets the following requi
 
 ## Installation Guidline
 
-- Please install Docker first
+- Please install Docker 
 - Clone this BIM repository
 
 ## Run the docker image
@@ -36,7 +36,7 @@ Once Docker is installed, build the docker image
 ``` 
 Then, run the container
 ```bash
-  - docker run -p 3333:3333 <your-image-name>
+  - docker run -p 3333:3333 "your-image-name"
 ```
 Alternatively, if there is a docker-compose.yml file, 
 you can build and start all services with a single command:
