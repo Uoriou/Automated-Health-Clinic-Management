@@ -34,11 +34,11 @@ To run the Automated Health Clinic, ensure your system meets the following requi
 
 Once Docker is installed, build the docker image 
 ```bash
-  - docker build -t "your-image-name" .
+  docker build -t "your-image-name" .
 ``` 
 Then, run the container
 ```bash
-  - docker run -p 8080:8080 "your-image-name"
+  docker run -p 8080:8080 "your-image-name"
 ```
 Alternatively, if there is a docker-compose.yml file, 
 you can build and start all services with a single command:
