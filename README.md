@@ -65,6 +65,7 @@ http://0.0.0.0:8080/register?name=Anthony&address=Betis
 2, Appointment Booking 
 Check the already booked appointment slot by 
  + ```http://0.0.0.0:8080/checkBookingSlots```
+   
 Book an appintment
  + ```http://0.0.0.0:8080/book?pid=1&date=12.12.2024&time=10:00&name=Mario```
 
@@ -74,7 +75,7 @@ Book an appintment
 3, Handling Insuarance
  + 
 
-4 Inventory Management 
+4, Inventory Management 
 
 To add medicines to Inventory
 + ```"http://0.0.0.0:8080/inventory/add_item/<string>/<int>/<int>"```
