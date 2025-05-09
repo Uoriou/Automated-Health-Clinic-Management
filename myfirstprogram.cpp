@@ -236,22 +236,18 @@ class Inventory {
         char *zErrMsg = 0;
         int rc;
             
-        rc = sqlite3_open("test.db", &db);
-            
+        rc = sqlite3_open("test.db", &db);  
         if( rc ) {
             fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
             return;
-    
         } else {
-            fprintf(stderr, "Opened database successfully\n");
-                    
+            fprintf(stderr, "Opened database successfully\n");         
         }
             
         string query = "INSERT INTO inventory (ITEM, QUANTITY, THRESHOLD) VALUES ('" +item + "', " +
                     std::to_string(quantity) + ", " + std::to_string(threshold) + ");";
                            
-        const char* insertSql = query.c_str(); // Convert to const char*
-                
+        const char* insertSql = query.c_str(); // Convert to const char*     
         /* Execute SQL statement for inserting the records*/
         rc = sqlite3_exec(db, insertSql, 0, 0, &zErrMsg);
                 
@@ -291,23 +287,57 @@ class Inventory {
             fprintf(stderr, "SQL error retreving inventory: %s\n", zErrMsg);
             sqlite3_free(zErrMsg);
         }
+
+
     
         sqlite3_close(db);    
         //return json;
     }
+    //This is to add supply (increase quantity)
+    void updateInventory(string item,  int quantity){
+
+        sqlite3 *db;
+        char *zErrMsg = 0;
+        int rc;
+        rc = sqlite3_open("test.db", &db);
+
+        if( rc ) {
+            fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
+            return;
+        } else {
+            fprintf(stderr, "Opened database successfully\n");
+        }
+
+        string query = "UPDATE inventory SET QUANTITY = " + to_string(quantity) +
+                " WHERE ITEM = '" + item + "';";
+        const char* insertSql = query.c_str(); 
+        // Execute SQL statement for inserting the records
+        rc = sqlite3_exec(db, insertSql, callbackInventory, 0, &zErrMsg);
+
+        if( rc != SQLITE_OK ){
+            fprintf(stderr, "SQL error updating one or more records: %s\n", zErrMsg);
+            sqlite3_free(zErrMsg);
+            return;
+        } else {
+            fprintf(stdout, "Record updated successfully\n");
+            return;
+        }
+
+        sqlite3_close(db);
+    }
     
-            /*void setthreshold(const string &item,  int thresholds) {
-                threshold[item] = thresholds;
+    /*void setthreshold(const string &item,  int thresholds) {
+        threshold[item] = thresholds;
                 
-            }
+    }
     
-            int checkSupply(const string &item) const {
-                auto it = supplies.find(item);
-                if (it != supplies.end()) {
-                    return it->second;
-                }
-                return -1;
-            }
+    int checkSupply(const string &item) const {
+        auto it = supplies.find(item);
+        if (it != supplies.end()) {
+            return it->second;
+        }
+        return -1;
+    }
     
             bool removeSupply(const string &item, int quantity) {
                 auto it = supplies.find(item);
@@ -440,8 +470,6 @@ int deleteTable(char *zErrMsg,int rc){// idk if the pointer initilisation is cor
 
 }
 
-
-
 //Used only single time for creating patient database
 int createTable(){
 
@@ -468,7 +496,6 @@ int createTable(){
                   "PURPOSE TEXT, "
                   "APPOINTMENT TEXT,"
                   "PRESCRIPTION TEXT);";
-    
 
     rc = sqlite3_exec(db, sql, callback, 0, &zErrMsg);//Executing the sql command
    
@@ -478,7 +505,6 @@ int createTable(){
     } else {
         fprintf(stdout, "Table Ok\n");
     }
-
     return 0;
 }
 //Used only single time for creating inventory database
@@ -489,13 +515,11 @@ int createInventoryTable(){
     int rc;
 
     rc = sqlite3_open("test.db", &db);
-
     if( rc ) {
         fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
         return(0);
     } else {
         fprintf(stderr, "Opened database successfully\n");
-        
     }
     
     //Inventory table initialised
@@ -505,7 +529,6 @@ int createInventoryTable(){
                   "QUANTITY INTEGER NOT NULL, "
                   "THRESHOLD INTEGER NOT NULL);";
     
-
     rc = sqlite3_exec(db, sql, callback, 0, &zErrMsg);//Executing the sql command
    
     if( rc != SQLITE_OK ){
@@ -525,8 +548,6 @@ The original patient database is updated because when a patient registers for th
 the appointment field in the database is null 
 */ 
 int updatePatient(string name, int pid,string date,string time){
-
-    
     sqlite3 *db;
     char *zErrMsg = 0;
     int rc;
@@ -538,15 +559,12 @@ int updatePatient(string name, int pid,string date,string time){
         return(0);
     } else {
         fprintf(stderr, "Opened database successfully\n");
-        
     }
-    //Update
+
     string query = "UPDATE patient SET APPOINTMENT = " +
     (appointment.empty() ? "NULL" : "'" + appointment + "'") + 
     " WHERE ID = " + std::to_string(pid) + ";";
-
     const char* insertSql = query.c_str(); 
-
     // Execute SQL statement for inserting the records
     rc = sqlite3_exec(db, insertSql, callback, 0, &zErrMsg);
 
@@ -560,70 +578,6 @@ int updatePatient(string name, int pid,string date,string time){
     }
 
     sqlite3_close(db);
-}
-
-//Retrieve patients records, i might not need this..... but lets keep it here 
-string retrieveData(int pid,string dbName){// for example... option == PURPOSE
-
-    crow::json::wvalue response; 
-    sqlite3 *db;
-    sqlite3_stmt* stmt;
-    char *zErrMsg = 0;
-    int rc;
-    string name = "";
-    string address = "";
-    string insurance = "";
-    string purpose = "";
-    string appointment = "";
-    string prescription = "";
-
-    /* Open database */
-    rc = sqlite3_open("test.db", &db);
-    
-    if( rc ) {
-        fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
-        return(0);
-    } else {
-        fprintf(stderr, "Opened database successfully / retrieve \n");
-    }
-    
-    /* Create SQL statement for retrieving data*/
-    string sql = "SELECT * from patient WHERE ID = " +std::to_string(pid)+";";
-    /* Execute SQL statement */
-    sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
-    
-    if( rc != SQLITE_OK ) {
-        fprintf(stderr, "SQL error preparing statement for retrieving: %s\n", zErrMsg);
-        sqlite3_free(zErrMsg);
-        sqlite3_close(db); 
-    }else{
-        cout<<"Good SQL"<<"\n";
-    }
-
-    while ((rc = sqlite3_step(stmt)) == SQLITE_ROW) {
-
-        int id = sqlite3_column_int(stmt, 0);
-        name = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
-        address = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 2));
-        insurance = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 3));
-        purpose = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 4));
-        appointment = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 5));
-        prescription = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 6));
-
-    }
-
-    if (rc != SQLITE_DONE) {
-        std::cerr << "Error while iterating rows: " << sqlite3_errmsg(db) << std::endl;
-
-    }
-
-    sqlite3_finalize(stmt);
-    sqlite3_close(db);
-
-    response[to_string(pid)] = {{"name", name}, {"address", address}, {"insurance", insurance}, {"purpose", purpose}, {"appointment", appointment}};
-    return response.dump();
-   
-        
 }
 
 //Retrieve patients records for other operation purposes
@@ -1032,6 +986,8 @@ int main() {
     Handling billing and insurance claims
     */
 
+    
+
     CROW_ROUTE(app, "/bill").methods("GET"_method)([&](const crow::request& req) {
 
         crow::json::wvalue payment; 
@@ -1100,27 +1056,40 @@ int main() {
     1 ) Implement a procedure to record and update the quantity of medical supplies
     2 ) Alert a member of the medical staff when the quantity of a supply falls below a certain threshold
     */
-    CROW_ROUTE(app,"/inventory/add/<string>/<int>/<int>")
+
+    Inventory inventory{"",0,0};
+    CROW_ROUTE(app,"/inventory/add_item/<string>/<int>/<int>")
     ([&](const string &item, int supplies,int threshold){
         //get the parameters<string>, <int> from the url
-        Inventory inventory{item,supplies,threshold};
-        inventory.addsupply(inventory.getItem(),inventory.getSupplies(),inventory.getThreshold());
-        return crow::json::wvalue{{"status","success"},{"message","Threshold is set for "+ item}};
+
+        try {
+
+            Inventory inventory{item,supplies,threshold};
+            inventory.addsupply(inventory.getItem(),inventory.getSupplies(),inventory.getThreshold());
+            return crow::json::wvalue{{"status","success"},{"message","Threshold is set for "+ item}};
+        }
+        catch(const std::exception &e){
+           
+            cout << "Caught " << e.what();
+            return crow::json::wvalue{{"status","Failed to add the item to the records"}};
+        }
+        
 
     });
 
     CROW_ROUTE(app, "/inventory/all")
-    ([&]() {
+    ([&inventory]() {
         //Call a get function, which is inside Inventory class 
         
-        Inventory inventory{"",0,0};
-        inventory.executeInventorySql();
+        //Inventory inventory{"",0,0};
+        inventory.executeInventorySql();//Returning the inventory records 
         //Access the static hashmap in main
         crow::json::wvalue response; 
-
+        //tableMap is not populated with all the data from db 
         try{
             for (const auto& [key, value] : Inventory::tableMap) {
                 response[key] = value;
+                cout<<value;
             }
             return response;
         }   
@@ -1134,25 +1103,58 @@ int main() {
     /*Prescription is distributed from here so updated it 
     CROW_ROUTE(app, "/inventory/use")
     ([&]() {
+        // i can use a whole bunch of algorithm to keep track of the most frequest item
         Inventory inventory{"",0,0};
         
     });*/
 
-    /*
+    
     CROW_ROUTE(app,"/inventory/low_supplies")
-        ([&inventory]() {
+    ([&inventory]() {
+        //Check the inventory
+        //If an item is lower than its threshold 
         //Automatic reordering using email 
-        auto lowSupplies = inventory.checkthreshold();
-        return crow::response(lowSupplies);
-    });
-    CROW_ROUTE(app, "/inventory/add_supply/<string>/<int>")
-    ([&inventory](const string &item, int quantity) {
-        
-        inventory.addsupply(item, quantity);
-        return crow::json::wvalue{{"status", "success"}, {"message", item + " updated with " + to_string(quantity) + " units"}};
-    });
-    */
+        crow::json::wvalue response; 
+        int threshold;
+        string item;
+        int quantity;
 
+        inventory.executeInventorySql();//Returning the inventory records
+        try{
+            //for now set a random threshold
+            for (const auto& [key, value] : Inventory::tableMap) {
+                
+                if(key == "THRESHOLD"){
+                    threshold = stoi(value);
+                }
+                if(key == "ITEM"){
+                    item = value;
+                }
+                if(key == "QUANTITY"){
+                    quantity = stoi(value);
+                }
+            }
+            if(quantity <= threshold){   
+                response[item] = "is running low";
+            }
+            return response;
+        }catch(...){
+            return response["message"] = "Could not retrieve the data";
+        }
+    });
+    
+    CROW_ROUTE(app, "/inventory/add_supply/<string>/<int>")
+    ([&](const string &item, int quantity) {
+        //updating 
+        Inventory inventory{item,quantity,0};
+        try{
+            inventory.updateInventory(inventory.getItem(),inventory.getSupplies());
+            return crow::json::wvalue{{"status", "success"}, {"message", inventory.getItem() 
+                + " updated with " + to_string(inventory.getSupplies()) + " units"}};
+        }catch(...){
+            return crow::json::wvalue{{"status", "failed"}};
+        }
+    });
     app.port(8080).run();
     return 0;
 }
