@@ -1,4 +1,4 @@
-# Automated Health Clinic Management System 
+# Automated Health Clinic Management System (AHCM)
 
 ## Project Scope / Project Objectives
 The local community health clinic is transitioning from a paper-based system to a
@@ -26,7 +26,7 @@ To run the Automated Health Clinic, ensure your system meets the following requi
 ## Installation Guidline
 
 - Please install Docker 
-- Clone this BIM repository
+- Clone this AHCM repository
 
 ## Run the docker image
 
