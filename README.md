@@ -15,9 +15,7 @@ To run the Automated Health Clinic, ensure your system meets the following requi
 
 - Operating System: Windows, macOS, or Linux
 
-- C++ and C++ Compiler: GCC 9.3 or higher / g++
-  
-- Databsese SQLlite3
+- Docker
 
 ## Libraries used:
 
