@@ -41,7 +41,9 @@ Then, run the container
 Alternatively, if there is a docker-compose.yml file, 
 you can build and start all services with a single command:
 
-  - docker compose up --build
+```bash
+docker compose up --build
+```
     
 To stop the continer press Ctrl+C
 
