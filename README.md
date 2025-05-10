@@ -46,6 +46,13 @@ you can build and start all services with a single command:
 ```bash
 docker compose up --build
 ```
+
+Apply migrations and create a superuser in a terminal  
+
+```bash
+docker-compose exec web python manage.py migrate
+docker-compose exec web python manage.py createsuperuser
+```
     
 To stop the continer press Ctrl+C
 
