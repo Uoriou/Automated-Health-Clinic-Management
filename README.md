@@ -34,10 +34,10 @@ To run the Automated Health Clinic, ensure your system meets the following requi
 
 
 <pre>
- project-root/ |── README.md ├── Dockerfile ├── .vscode/              
+Automated-Health-Clinic-Management/ 
+├── Dockerfile            
 ├── app/                     # Core application logic
-├── include/                 # Header files (.h)
-├── inventory/               
+├── include/                 # Header files (crow.h) for a server             
 ├── myapp/                   # Additional application components
 ├── presentations/           # Presentation slides
 ├── .gitignore               # Files to ignore
