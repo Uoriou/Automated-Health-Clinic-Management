@@ -30,6 +30,11 @@ To run the Automated Health Clinic, ensure your system meets the following requi
 - Please install Docker 
 - Clone this AHCM repository
 
+## Project Structure 
+
+
+<pre>``` bash project-root/
+<pre>```
 ## Run the docker image
 
 Once Docker is installed, build the docker image 
