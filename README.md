@@ -33,8 +33,23 @@ To run the Automated Health Clinic, ensure your system meets the following requi
 ## Project Structure 
 
 
-<pre>``` bash project-root/
-```</pre>
+<pre>
+ project-root/ |── README.md ├── Dockerfile ├── .vscode/              
+├── app/                     # Core application logic
+├── include/                 # Header files (.h)
+├── inventory/               
+├── myapp/                   # Additional application components
+├── presentations/           # Presentation slides
+├── .gitignore               # Files to ignore
+├── Dockerfile               # Docker configuration file
+├── docker-compose.yml       # Docker Compose configuration
+├── README.md                # Project documentation
+├── compile.txt              # Compilation instructions just in case
+├── myfirstprogram.cpp       # Main C++ program
+├── a.out                    # Compiled binary (output file)
+├── test.db                  # SQLite database file
+└── .DS_Store                
+</pre>
 ## Run the docker image
 
 Once Docker is installed, build the docker image 
