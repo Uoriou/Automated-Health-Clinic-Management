@@ -34,7 +34,7 @@ To run the Automated Health Clinic, ensure your system meets the following requi
 
 
 <pre>``` bash project-root/
-<pre>```
+```<pre>
 ## Run the docker image
 
 Once Docker is installed, build the docker image 
